@@ -1,0 +1,82 @@
+请修改代码，在注意事项的要求下，生成代码（不需要执行，但是需要在代码各个位置进行输出以表明进度）：
+---
+任务是：
+1.生成不同规模$N$的BA网络，分别尝试用随机游走，最大度策略，最小度策略（每次选度最小的邻节点）以及优先附着（度为$k_i$的节点被选中的概率为$k_i/\sum_{j}{k_j}$）来估计网络的平均路径长度$D$，并观察不同方法下，其随着$N$的变化趋势。
+
+2. 如果将1中优先附着的公式修改为$k_i^\alpha/\sum_{j}{k_j^\alpha}$，讨论不同$\alpha$时，对于一个特定的$N$，所估计的$D$如何变化。
+
+---
+
+注意事项是：
+
+你需要注意三个问题，并完整按照任务要求执行各个策略的结果，将结果可视化在一张图上：
+1.横轴应该是对于N取以10为底的对数，纵轴应该对于平均路径长度取对数，N应该有更多的测试点，至少15个点。
+2.平均路径长度计算方式：估计网络平均直径时，可以采取在网络中随机选取两个点进行游走，成功1000次求平均即可；
+3.随机游走策略必须考虑到不会在同一条边连续走2次。
+
+---
+
+现有代码是：
+
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+import networkx as nx
+
+def calculate_standard_average_path_length(G):
+    """
+    Calculate the standard average path length for the graph G.
+    """
+    return nx.average_shortest_path_length(G)
+
+def modified_random_walk(G, steps=10000):
+    """
+    Perform a modified random walk that avoids revisiting the same edge consecutively.
+    """
+    np.random.seed(42)  # For reproducibility
+    nodes = list(G.nodes())
+    current_node = np.random.choice(nodes)
+    previous_node = None
+    path_lengths = []
+
+    for _ in range(steps):
+        neighbors = [n for n in G.neighbors(current_node) if n != previous_node]
+        if not neighbors:  # If no other neighbors, go back (to avoid dead ends in the simulation)
+            next_node = previous_node
+        else:
+            next_node = np.random.choice(neighbors)
+        
+        if previous_node is not None:
+            path_lengths.append(nx.shortest_path_length(G, source=previous_node, target=current_node))
+        
+        previous_node, current_node = current_node, next_node
+
+    return np.mean(path_lengths)
+
+# Expanded set of N values
+N_values_expanded = np.logspace(2, 3.5, 15, dtype=int)
+D_values_random_walk_modified = []
+D_values_standard = []
+
+for N in N_values_expanded:
+    G = nx.barabasi_albert_graph(N, m)
+    D_rw = modified_random_walk(G)
+    D_standard = calculate_standard_average_path_length(G)
+    D_values_random_walk_modified.append(D_rw)
+    D_values_standard.append(D_standard)
+
+# Plotting
+plt.figure(figsize=(12, 8))
+plt.plot(np.log10(N_values_expanded), D_values_random_walk_modified, marker='o', linestyle='-', color='blue', label='Modified Random Walk')
+plt.plot(np.log10(N_values_expanded), D_values_standard, marker='x', linestyle='--', color='red', label='Standard Average Path Length')
+plt.title('Log-Scale Network Size $N$ vs Average Path Length $D$')
+plt.xlabel('Log-Scale Network Size $N$ (log10)')
+plt.ylabel('Average Path Length $D$')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+N_values_expanded, D_values_random_walk_modified, D_values_standard
+
+
+
